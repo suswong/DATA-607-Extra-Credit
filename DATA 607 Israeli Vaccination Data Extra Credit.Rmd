@@ -1,0 +1,196 @@
+---
+title: "DATA 607 Israeli Vaccination Data Extra Credit"
+author: "Susanna Wong"
+date: "2023-03-01"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+
+
+# Load CSV
+
+The raw data is stored <a href="https://raw.githubusercontent.com/suswong/DATA-607-Extra-Credit/main/Israeli%20Vaccination%20Data%20Extra%20Credit.csv"> here</a>. The data is imported into R.
+
+```{r, message=FALSE}
+library(tidyr)
+library(dplyr)
+library(DT)
+raw_data <- read.csv('https://raw.githubusercontent.com/suswong/DATA-607-Extra-Credit/main/Israeli%20Vaccination%20Data%20Extra%20Credit.csv')
+datatable(raw_data)
+```
+
+# Tidy Data
+
+The first row contains part of the header. We need to remove the first row and the last column. Then. rename the columns. We should also fill in the missing values in the age column. 
+```{r, message=FALSE}
+new <- raw_data
+new <- new[-1,] #Remove the 1st row
+new <- new[,-6] #Remove the last column
+new[new ==""]<-NA #Fills the missing values with NA
+filled_data <- fill(new, Age, .direction = c("down"))
+colnames(filled_data)<-c('Age','Not_Vax', 'Fully_Vax', 'Severe_Not_Vax','Severe_Fully_Vax')
+datatable(filled_data)
+
+#'Efficiacy_v.Severe'
+```
+
+## Create a table for the percentage of people who were vaccinated and not vaccinated for each age group
+
+The third and 5th row contains the percentage of people who were vaccinated. We should create three new tables for the following:
+1. The percentage of people who were vaccinated and not vaccinated for each age group
+2. The number of people who were vaccinated and not vaccinated for each age group
+3. The number of severe cases for those who were vaccinated and not vaccinated
+```{r, message=FALSE}
+odd <- seq(1,nrow(filled_data),2)
+even <- seq(2,nrow(filled_data),2)
+percentage <-filled_data[even,]
+percentage <- percentage[,-5] #Remove the 'Severe_Not_Vax' column
+percentage <- percentage[,-4] #Remove the 'Severe_Fully_Vax' column
+
+datatable(percentage)
+```
+### From wide format to long format
+
+```{r, message=FALSE}
+long_percentage <- percentage %>%
+  pivot_longer(cols = c('Not_Vax', 'Fully_Vax'),names_to = "Status", values_to = "Percentage")
+datatable(long_percentage)
+```
+
+## Create a table for the number of people who were vaccinated and not vaccinated for each age group
+
+```{r, message=FALSE}
+population <-filled_data[odd,]
+population <- population[,-5] #Remove the 'Severe_Fully_Vax' column
+population <- population[,-4] #Remove the 'Severe_Not_Vax' column
+
+datatable(population)
+```
+
+### From wide format to long format
+
+After changing the format from wide to long, we should reorder the column. 
+```{r, message=FALSE}
+long_population <- population %>%
+  pivot_longer(cols = c('Not_Vax', 'Fully_Vax'),names_to = "Status", values_to = "Population")
+
+col_order <- c('Age', 'Status', 'Population','Severe_Not_Vax','Severe_Fully_Vax') 
+datatable(long_population)
+```
+
+## Create a table for the number of severe cases for those who were vaccinated and not vaccinated
+
+```{r, message=FALSE}
+severe <-filled_data[odd,]
+severe <- severe[,-3] #Remove the 'Fully_Vax' (population) column
+severe <- severe[,-2] #Remove the 'Not_Vax'(population) column
+colnames(severe)<-c('Age','Not_Vax', 'Fully_Vax')
+datatable(severe)
+```
+
+### From wide format to long format
+
+
+```{r, message=FALSE}
+long_severe <- severe %>%
+  pivot_longer(cols = c('Not_Vax','Fully_Vax'), values_to = "Severe_Cases_Per_100K")
+
+long_severe <- long_severe[,-2] #Remove second column that contains 'Severe_Not_Vax', and 'Severe_Fully_Vax'
+datatable(long_severe)
+```
+
+## Merge the tables
+Merge the population table and percentage table to create a new tidied table. 
+
+```{r, message=FALSE}
+merge_long_population_long_severe <- cbind(long_population, long_severe)
+datatable(merge_long_population_long_severe)
+merge_all <- cbind(merge_long_population_long_severe, long_percentage ) 
+merge_all <- merge_all[,-7]
+merge_all <- merge_all[,-6]
+merge_all <- merge_all[,-4]
+
+col_order <- c('Age', 'Status', 'Population', 'Percentage','Severe_Cases_Per_100K')
+tidied_data <- merge_all[, col_order]
+datatable(tidied_data)
+# 
+# tidied_data <- cbind(merge_long_population_long_percentage, long_severe) #long_severe table does not have any common columns with the other tables. So we will need to 'cbind' them
+# tidied_data <- tidied_data[,-2] #Remove second column that contains 'Severe_Not_Vax', and 'Severe_Fully_Vax'
+# datatable(tidied_data)
+
+```
+
+# Questions
+
+## 1. Do you have enough information to calculate the total population? What does this total population represent?
+
+Based on <a href="https://worldpopulationreview.com/countries/israel-population"> World Population Review </a>,  the population size was about 8,900,000 in 2021. The calculated total number of people who were vaccinated and vaccinated was 6,937,546. This number did not match the total population. The total population discrepancy is about 1,962,454.
+
+```{r}
+tidied_data$Population <- as.numeric(gsub(",","",tidied_data$Population))
+sum_population <- sum(tidied_data$Population)
+sum_population
+
+discrepancy <- 8900000 - 6937546
+discrepancy
+
+```
+
+This led me to question who was eligible to get the vaccine by August 2021. Only those who are eligible can take the vaccine. When they say "population not vaccinated", does that include those who not eligible for the vaccine. 
+
+Unfortunately, I could not find the vaccine eligibility information for August 2021. However, I found that <a href="https://www.thelancet.com/journals/lanres/article/PIIS2213-2600(22)00010-8/fulltext"> Israel started to vaccine 5-11 year old on November 2021 </a>. This means prior to November 2021, 5-11 year old children are not eligible to receive the vaccine. So not everyone of the 8,900,000 population was eligible for the vaccine prior to November 2021. This can explain the part of the discrepancy if the table only includes information of those that were eligible by August 2021. 
+
+Israel population by age group can be found <a href="https://www.statista.com/statistics/1286953/total-population-of-israel-by-age-group/"> here </a>. I used the following age group to calculate the population under 12 years old: "4 years or younger", "5-9 years", and "10-14 years". The calculated population of children under 10 is 1,805,400. The calculated population of children under 15 is 2,621,100. So, the number of children who were not eligible for the vaccine was around 1,805,400 to 2,621,100. The population discrepency (1,962,454) falls within that range.
+
+```{r}
+age_up_to_4 <- 915.2*1000
+age_5_to9 <- 890.2*1000
+age_10_14 <- 815.7*1000
+
+age_under10 <- age_up_to_4 + age_5_to9
+age_under10
+
+age_under15 <- age_up_to_4 + age_5_to9 + age_10_14
+age_under15
+
+```
+
+Another reason that can explain the discrepancy is the number of people of "fully vaccinated". To be "fully vaccinated", you need to have 2 doses of the vaccine. There are additionally requirements on being vaccinated which can be found <a href="https://corona.health.gov.il/en/vaccine-for-covid/fully-vaccinated/"> here </a>. 
+
+People who received one dose of the vaccine is not "fully vaccinated". They may not be counted in the given table. 
+
+## 2. Calculate the Efficacy vs. Disease. Explain your results.
+
+Efficacy vs. severe disease = 1 - (% fully vaxed severe cases per 100K / % not vaxed severe cases per 100K)
+
+Efficacy rate for those under 50 was about 91.95%.
+Efficacy rate for those over 50 was about 85.21%. 
+
+```{r}
+Efficacy_vs_Disease<- tidied_data
+Efficacy_vs_Disease$Percentage_of_hospitalization <- format(round((as.numeric(Efficacy_vs_Disease$Severe_Cases_Per_100K)*100000)/as.numeric(Efficacy_vs_Disease$Population),2),nsmall=2)
+
+datatable(Efficacy_vs_Disease)
+
+Efficacy_under50 <- 1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[2])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[1]))
+
+Efficacy_vs_Disease$Efficacy_vs_Disease[1] <-Efficacy_under50 
+
+Efficacy_over50 <- 1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[4])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[3]))
+
+Efficacy_vs_Disease$Efficacy_vs_Disease[3:4] <-Efficacy_over50 
+
+datatable(Efficacy_vs_Disease)
+```
+
+## 3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
+
