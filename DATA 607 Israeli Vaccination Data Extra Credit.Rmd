@@ -14,7 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
+The goal of this assignment is to analyze the Israel vaccination data and answer the questions provided in the spreadsheet. The spreadsheet is available <a href="https://github.com/acatlin/data/blob/master/israeli_vaccination_data_analysis_start.xlsx"> here</a>. Below are the questions: 
 
+1.Do you have enough information to calculate the total population? What does this total population represent? 
+
+2. Calculate the Efficacy vs. Disease. Explain your results. 
+
+3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
 
 # Load CSV
 
@@ -179,25 +185,36 @@ Efficacy rate for those over 50 was about 85.21%. This means the vaccine can hel
 Efficacy_vs_Disease<- tidied_data
 Efficacy_vs_Disease$Percentage_of_hospitalization <- format(round((as.numeric(Efficacy_vs_Disease$Severe_Cases_Per_100K)*100000)/as.numeric(Efficacy_vs_Disease$Population),2),nsmall=2)
 
-datatable(Efficacy_vs_Disease)
+Efficacy_under50 <- format(round(((1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[2])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[1])))*100),2),nsmall=2)
 
-Efficacy_under50 <- 1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[2])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[1]))
+Efficacy_vs_Disease$Efficacy_vs_Disease[2] <-Efficacy_under50 
 
-Efficacy_vs_Disease$Efficacy_vs_Disease[1] <-Efficacy_under50 
+Efficacy_over50 <- format(round(((1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[4])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[3])))*100),2),nsmall=2)
 
-Efficacy_over50 <- 1-(as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[4])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[3]))
-
-Efficacy_vs_Disease$Efficacy_vs_Disease[3:4] <-Efficacy_over50 
+Efficacy_vs_Disease$Efficacy_vs_Disease[4] <-Efficacy_over50 
 
 datatable(Efficacy_vs_Disease)
 ```
 
 ## 3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
 
-The rate of severe cases is Percentage of severe cases not vaccinated/Percentage of severe cases vaccinated.
+The rate of severe cases for people under 50 is the Percentage of severe cases under 50 not vaccinated/Percentage of severe cases under 50 vaccinated.
 
-The rate of severe cases for under 50 is 12.42%.
-The rate of severe cases for over 50 is 6.76%.
+The rate of severe cases for people over 50 is the Percentage of severe cases over 50 not vaccinated/Percentage of severe cases over 50 vaccinated.
+
+The rate of severe cases for unvaccinated people is the Percentage of severe cases over 50 not vaccinated/Percentage of severe cases under 50 not vaccinated.
+
+The rate of severe cases for vaccinated people is the Percentage of severe cases over 50 vaccinated/Percentage of severe cases under 50 vaccinated.
+
+
+
+The rate of severe cases for under 50 is (3.85/0.31) = 12.42%. There is a 12.42 higher chance of unvaccinated people under 50 having severe cases than vaccinated people under 50.
+
+The rate of severe cases for over 50 is (91.9/13.59) = 6.76%. There is a 6.76 higher change of unvaccinated people over 50 having severe cases than vaccinated people over 50.
+
+The rate of severe cases for unvaccinated people is (91.9/3.85) = 23.87. There is a 23.87 higher chance of unvaccinated people over 50 having severe cases than unvaccinated people under 50.
+
+The rate of severe cases for vaccinated people is (13.6/0.3) = 45.33. There is 45.33 higher chance of vaccinated people over 50 having severe cases than vaccinated people under 50.
 
 ```{r}
 Severe_rate_under50<- format(round(((as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[1])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[2]))),2),nsmall=2)
@@ -211,3 +228,16 @@ Efficacy_vs_Disease$Rate_of_Severe_rate [3:4]<- Severe_rate_over50
 datatable(Efficacy_vs_Disease)
 
 ```
+Conclusions
+
+We did not have enough information to calculate the total population. The calculated total population was less than the reported total population. This total population discrepancy could be due to the uncounted population that were not eligible to take the vaccine and the uncount population of those who got vaccinated but not "fully" vaccinated.
+
+Efficacy vs. severe disease for those under 50 is 91.95% about the vaccine can help prevent at least 91.95% of the severe cases that needs hospitalization for those who are vaccinated and are under 50. Efficacy vs. severe disease for those over 50 was about 85.21%. This means the vaccine can help prevent at least 85.21% of the severe cases that needs hospitalization for those who are vaccinated and over 50.
+
+The rate of severe cases for under 50 is (3.85/0.31) = 12.42. There is a 12.42 higher chance of unvaccinated people under 50 having severe cases than vaccinated people under 50. 
+
+The rate of severe cases for over 50 is (91.9/13.59) = 6.76. There is a 6.76 higher change of unvaccinated people over 50 having severe cases than vaccinated people over 50. 
+
+The rate of severe cases for unvaccinated people is (91.9/3.85) = 23.87. There is a 23.87 higher chance of unvaccinated people over 50 having severe cases than unvaccinated people under 50. 
+
+The rate of severe cases for vaccinated people is (13.6/0.3) = 45.33. There is 45.33 higher chance of vaccinated people over 50 having severe cases than vaccinated people under 50.
