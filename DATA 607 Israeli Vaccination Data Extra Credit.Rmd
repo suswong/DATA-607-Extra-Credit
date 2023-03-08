@@ -172,8 +172,8 @@ People who received one dose of the vaccine is not "fully vaccinated". They may 
 
 Efficacy vs. severe disease = 1 - (% fully vaxed severe cases per 100K / % not vaxed severe cases per 100K)
 
-Efficacy rate for those under 50 was about 91.95%.
-Efficacy rate for those over 50 was about 85.21%. 
+Efficacy rate for those under 50 was about 91.95%. This means the vaccine can help prevent at least 91.95% of the severe cases that needs hospitalization for those who are vaccinated. 
+Efficacy rate for those over 50 was about 85.21%. This means the vaccine can help prevent at least 85.21% of the severe cases that needs hospitalization for those who are vaccinated.
 
 ```{r}
 Efficacy_vs_Disease<- tidied_data
@@ -194,3 +194,20 @@ datatable(Efficacy_vs_Disease)
 
 ## 3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
 
+The rate of severe cases is Percentage of severe cases not vaccinated/Percentage of severe cases vaccinated.
+
+The rate of severe cases for under 50 is 12.42%.
+The rate of severe cases for over 50 is 6.76%.
+
+```{r}
+Severe_rate_under50<- format(round(((as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[1])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[2]))),2),nsmall=2)
+
+Severe_rate_over50 <- format(round(((as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[3])/as.numeric(Efficacy_vs_Disease$Percentage_of_hospitalization[4]))),2),nsmall=2)
+
+Efficacy_vs_Disease$Rate_of_Severe_rate [1:2]<- Severe_rate_under50
+
+Efficacy_vs_Disease$Rate_of_Severe_rate [3:4]<- Severe_rate_over50
+
+datatable(Efficacy_vs_Disease)
+
+```
