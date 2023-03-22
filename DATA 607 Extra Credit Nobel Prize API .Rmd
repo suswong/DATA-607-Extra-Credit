@@ -396,6 +396,19 @@ ggplot(novel_prize_share_category,
   xlab("Prize Category")
 ```
 
+## Question 6
+What percentage of the laureate are still alive?
+
+33% of laureate are still alive.
+```{r}
+alive <- laureate_data %>%
+  filter(death_year=="0000") %>%
+  count()
+
+alive_percentage = (alive$n / nrow(laureate_data))*100
+alive_percentage
+
+
 # Conclusion
 
 1.  Which country has the most Nobel Prize winner by birth?
@@ -418,3 +431,7 @@ About 64% of the laureate shared their Nobel Prize. So far, the Nobel Prize can 
 5. Extension to question 4: Which category did not have a high prize share? 
 
 The majority of laureate in literature did not share their Nobel Prize. 
+
+6. What percentage of the laureate are still alive?
+
+33% of laureate are still alive.
