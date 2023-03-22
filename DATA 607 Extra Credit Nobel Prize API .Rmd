@@ -1,0 +1,420 @@
+---
+title: "DATA 607 Extra Credit"
+author: "Susanna Wong"
+date: "2023-03-19"
+output:
+  html_document:
+    theme: cerulean
+    code_folding: hide
+    toc: true
+    toc_float: true
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Extra Credit Prompt
+
+Working with the two JSON files available through the API at nobelprize.org, ask and answer 4 interesting questions, e.g. "Which country "lost" the most nobel laureates (who were born there but received their Nobel prize as a citizen of a different country)?"
+
+# Retreive Data from API {.tabset}
+
+## Prize Data
+
+```{r }
+library(jsonlite)
+library(DT)
+
+prize_url <- "http://api.nobelprize.org/v1/prize.json"
+raw_prize_data <- fromJSON(prize_url)
+raw_prize_data <- as.data.frame(raw_prize_data)
+
+datatable(head(raw_prize_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+## Laureate Data
+
+```{r }
+laureate_url <- "http://api.nobelprize.org/v1/laureate.json"
+laureate_raw_data <- fromJSON(laureate_url)
+
+#laureate_raw_data 
+
+# laureate_raw_data %>% 
+#   select(id, firstname, surname, born, died, bornCountry, bornCountryCode, bornCity, diedCountry, diedCountryCode, diedCity, gender, prizes ) 
+
+
+laureate_raw_data <- as.data.frame(laureate_raw_data)
+
+
+datatable(head(laureate_raw_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+## Country Data
+
+```{r }
+country_url <- "http://api.nobelprize.org/v1/country.json"
+raw_country_data <- fromJSON(country_url)
+raw_country_data <- as.data.frame(raw_country_data)
+
+datatable(head(raw_country_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+
+```
+
+# Tidy the Data {.tabset}
+
+## Prize Data {.tabset}
+
+### UnNest Dataframe Within the Laureates column
+
+```{r, message=FALSE, warning=FALSE}
+#library(tidyr)
+library(tidyverse)
+prize_data <- raw_prize_data %>% 
+    mutate_if(is.list, map, as_data_frame) %>% 
+    unnest()
+# Source: https://community.rstudio.com/t/understanding-unnest-and-its-expectations/428/2
+
+colnames(prize_data) <- c("year","category","id", "firstname","surname","motivation","share","overall motivation")
+
+datatable(head(prize_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+### Remove Overall Motivation column
+
+The majority of the overall motivation column does not contain any value.
+This column will be remove.
+
+```{r}
+prize_data <- prize_data[,-8]
+
+datatable(head(prize_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+## Laureate Data {.tabset}
+
+### Unnest Dataframe Within the Laureates prize column
+
+```{r, warning=FALSE}
+laureate_data <- laureate_raw_data %>% 
+    mutate_if(is.list, map, as_data_frame) %>% 
+    unnest()
+# laureate_data
+# laureate_data %>%
+#   unchop(affiliations)
+# 
+# laureate_data2 <- laureate_data %>%
+#     mutate_if(is.list, map, as_data_frame) %>%
+#     unnest()
+# 
+# laureate_data
+
+colnames(laureate_data) <- c("id", "firstname","surname","born","death","born_country","born_country_code","born_city","death_country","death_country_code","death_city","gender","prize_year","prize_category","prize_share","prize_motivation","affiliations","overallMotivation")
+
+datatable(head(laureate_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+### Split Birth and Death date columns into Year, Month, Day
+
+```{r}
+library(dplyr)
+library(tidyr)
+laureate_data <- laureate_data %>% 
+   separate(born,c('born_year', 'born_month',"born_day"),sep="-")%>% 
+   separate(death,c('death_year', 'death_month',"death_day"),sep="-")
+
+datatable(head(laureate_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+## Country Data {.tabset}
+
+### Rename column names
+
+```{r }
+country_data <- raw_country_data
+colnames(country_data) <- c("country","country_code")
+
+datatable(head(country_data, 50),
+  plugins = "ellipsis",
+  options = list(scrollX = TRUE,
+    columnDefs = list(list(
+      targets = "_all",
+      render = JS("$.fn.dataTable.render.ellipsis(30, false )")
+    ))
+  )
+)
+```
+
+# Question {.tabset}
+
+## Question 1 {.tabset}
+
+Which country has the most Nobel Prize winner by birth?
+
+The top three countries that had the most Nobel Prize winner by birth are USA, United Kingdom, and Germany.
+
+### Datatable
+
+```{r}
+#unique(laureate_data$born_country)
+
+born_country_winners <- laureate_data
+born_country_winners$born_country[grep("(?i)French Algeria (now Algeria)", born_country_winners$born_country)] <- "Algeria"
+born_country_winners$born_country[grep("(?i)Prussia", born_country_winners$born_country)] <- "Germany"
+born_country_winners$born_country[grep("(?i)Hesse-Kassel", born_country_winners$born_country)] <- "Germany"
+born_country_winners$born_country[grep("(?i)Schleswig (now Germany)", born_country_winners$born_country)] <- "Germany"
+born_country_winners$born_country[grep("(?i)West Germany", born_country_winners$born_country)] <- "Germany"
+born_country_winners$born_country[grep("Bavaria" , born_country_winners$born_country)] <- "Germany"
+born_country_winners$born_country[grep("Mecklenburg" , born_country_winners$born_country)] <- "Germany"
+
+born_country_winners$born_country[grep("(?i)Russian Empire", born_country_winners$born_country)] <- "Netherlands"
+born_country_winners$born_country[grep("Germany (now Poland)", born_country_winners$born_country)] <- "Poland"
+born_country_winners$born_country[grep("Germany (now Poland)", born_country_winners$born_country)] <- "Poland"
+born_country_winners$born_country[grep("(?i)Austria-Hungary", born_country_winners$born_country)] <- "Poland"
+born_country_winners$born_country[grep("(?i)German-occupied Poland", born_country_winners$born_country)] <- "Poland"
+born_country_winners$born_country[grep("(?i)Free City of Danzig", born_country_winners$born_country)] <- "Poland"
+born_country_winners$born_country[grep("(?i)the Netherlands", born_country_winners$born_country)] <- "Poland"
+
+#unique(born_country_winners$born_country)
+
+born_country_winners <- born_country_winners  %>% 
+  group_by(born_country)%>% 
+   count(born_country)%>%
+   mutate(percentage = (n / nrow(laureate_data))*100)
+
+born_country_winners$percentage <- as.numeric(format(round(born_country_winners$percentage,2),nsmall =2))
+
+datatable(born_country_winners)
+```
+
+### Visualization
+
+```{r, warning=FALSE}
+born_country_winners <- distinct(born_country_winners) %>%
+  filter(percentage > 2 )
+
+born_country_winners %>% 
+    arrange(desc(n)) %>%
+    ggplot(., aes(x = reorder(born_country, n), y = n)) +
+  geom_bar(stat = 'identity', skill= "blue" , fill = 'lightblue') +
+  coord_flip() + ggtitle("Top 10 General Skills") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Nobel Prize by Country") +
+  xlab("Count")
+
+```
+
+## Question 2 {.tabset}
+
+There are 6 prize category: "physics", "chemistry", "peace","medicine", "literature", and "economics".
+A female, male, or organization can receive the Nobel Prize.
+What is the distribution of gender receiving a Nobel prize for each category?
+
+For each category, male has the highest percentage of receiving the Nobel Prize.
+Only organizations have receive a Nobel Prize in the the peace category.
+
+### Datatable
+
+```{r}
+unique(laureate_data$gender)
+unique(laureate_data$prize_category)
+novel_prize_category <- laureate_data %>% 
+  group_by(prize_category)%>% 
+   count(gender)%>%
+   mutate(percentage = (n / nrow(laureate_data))*100)
+
+novel_prize_category$percentage <- as.numeric(format(round(novel_prize_category$percentage,2),nsmall =2))
+
+datatable(novel_prize_category)
+```
+
+### Visualization
+
+```{r}
+ggplot(novel_prize_category,                                      
+       aes(x = prize_category,
+           y = n,
+           fill = gender)) +
+  geom_bar(stat = "identity",
+           position = "dodge") +
+  ggtitle("Nobel Prize by Category") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Prize Category") +
+  xlab("Count")
+```
+
+## Question 3
+
+Although the Novel Prize has been received by predominately male, has the number of prizes received by the other 'genders' increase a lot over time?
+
+The number of females receiving a Novel Prize did increase over time after 2000.
+
+```{r}
+gender_over_time <- laureate_data[c("prize_year","gender")] %>%
+  group_by(gender) %>%
+  mutate(count=row_number())
+  # mutate(counter = seq_along(gender)) %>%
+  # ungroup()
+
+gender_over_time$prize_year <- as.Date(as.character(gender_over_time$prize_year),
+                        format = "%Y")
+
+ggplot(gender_over_time, aes(x = prize_year, y = count, colour = gender)) +
+  geom_smooth() +scale_x_date(date_labels = "%Y ")
+```
+
+## Question 4 {.tabset}
+
+What is the percentage of laureate shared their prize?
+
+About 64% of the laureate shared their Nobel Prize. So far, the Nobel Prize can be shared up to 4 laureates. 
+### Datatable
+
+```{r}
+unique(laureate_data$prize_share)
+
+novel_prize_share <- laureate_data %>% 
+  group_by(prize_share)%>% 
+   count(prize_share)%>%
+   mutate(percentage = (n / nrow(laureate_data))*100)
+
+novel_prize_share$percentage <- as.numeric(format(round(novel_prize_share$percentage,2),nsmall =2))
+
+datatable(novel_prize_share)
+
+```
+
+### Visualization
+
+```{r}
+ggplot(novel_prize_share,                                      
+       aes(x = prize_share,
+           y = percentage,)) +
+  geom_bar(stat = 'identity', skill= "blue" , fill = 'lightblue') +
+  ggtitle("Nobel Prize Share") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Count") +
+  xlab("Prize Share")
+
+
+```
+
+## Question 5
+
+Extension to question 4:
+Which category did not have a high prize share? 
+
+The majority of laureate in literature did not share their Nobel Prize. 
+### Datatable
+
+```{r}
+unique(laureate_data$prize_share)
+
+novel_prize_share_category <- laureate_data %>% 
+  group_by(prize_category,prize_share)%>% 
+   count(prize_share)%>%
+   mutate(percentage = (n / nrow(laureate_data))*100)
+
+novel_prize_share_category$percentage <- as.numeric(format(round(novel_prize_share_category$percentage,2),nsmall =2))
+
+datatable(novel_prize_share_category)
+
+```
+
+### Visualization
+
+```{r}
+ggplot(novel_prize_share_category,                                      
+       aes(x = prize_category,
+           y = n,
+           fill = prize_share)) +
+  geom_bar(stat = "identity",
+           position = "dodge") +
+  ggtitle("Nobel Prize by Category") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Count") +
+  xlab("Prize Category")
+```
+
+# Conclusion
+
+1.  Which country has the most Nobel Prize winner by birth?
+
+The top three countries that had the most Nobel Prize winner by birth are USA, United Kingdom, and Germany.
+
+2.  There are 6 prize category: "physics", "chemistry", "peace","medicine", "literature", and "economics". A female, male, or organization can receive the Nobel Prize. What is the distribution of gender receiving a Nobel prize for each category?
+
+For each category, male has the highest percentage of receiving the Nobel Prize.
+Only organizations have receive a Nobel Prize in the the peace category.
+
+3.  Although the Novel Prize has been received by predominately male, has the number of prizes received by the other 'genders' increase a lot over time?
+
+The number of females receiving a Novel Prize did increase over time after 2000.
+
+4. What is the percentage of laureate shared their prize?
+
+About 64% of the laureate shared their Nobel Prize. So far, the Nobel Prize can be shared up to 4 laureates. 
+
+5. Extension to question 4: Which category did not have a high prize share? 
+
+The majority of laureate in literature did not share their Nobel Prize. 
